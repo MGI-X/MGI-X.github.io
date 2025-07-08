@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -381,6 +379,67 @@
         </div>
     </div>
     <script>
+        // CDN 基础路径
+        const CDN_BASE = 'https://cdn.jsdelivr.net/gh/MGI-X/MGI-X.github.io@main/';
+
+        // 替换所有img、video的src为CDN路径（只处理非http开头的）
+        function updateAllMediaToCDN() {
+            document.querySelectorAll('img.step-gif, img, video.step-video, video').forEach(media => {
+                let src = media.getAttribute('src');
+                if (src && !src.startsWith('http')) {
+                    media.setAttribute('src', CDN_BASE + src);
+                }
+                // 移除所有img的loading属性
+                if (media.tagName === 'IMG' && media.hasAttribute('loading')) {
+                    media.removeAttribute('loading');
+                }
+            });
+        }
+
+        // GIF/视频切换逻辑（支持每步多个媒体）
+        let isVideoMode = false;
+        function toggleMode() {
+            isVideoMode = !isVideoMode;
+            document.body.classList.toggle('video-mode', isVideoMode);
+            updateToggleButton(isVideoMode);
+            const allStepSections = document.querySelectorAll('.step-section');
+            allStepSections.forEach(section => {
+                section.querySelectorAll('.step-gif, .step-video').forEach(media => {
+                    // 获取文件名（去掉CDN_BASE前缀）
+                    let src = media.getAttribute('src');
+                    if (!src) return;
+                    let filename = src.startsWith(CDN_BASE) ? src.slice(CDN_BASE.length) : src;
+                    if (isVideoMode) {
+                        // 只处理.gif结尾的IMG
+                        if (media.tagName === 'IMG' && /\.gif$/i.test(filename)) {
+                            let base = filename.replace(/\.gif$/i, '');
+                            const video = document.createElement('video');
+                            video.className = 'step-video';
+                            video.setAttribute('controls', '');
+                            video.setAttribute('src', CDN_BASE + base + '.mp4');
+                            video.setAttribute('alt', media.getAttribute('alt') || '');
+                            video.setAttribute('preload', 'none');
+                            video.setAttribute('playsinline', '');
+                            media.parentNode.replaceChild(video, media);
+                        }
+                    } else {
+                        // 只处理step-video（即mp4视频）
+                        if (media.tagName === 'VIDEO') {
+                            let base = filename.replace(/\.mp4$/i, '');
+                            const img = document.createElement('img');
+                            img.className = 'step-gif';
+                            img.setAttribute('src', CDN_BASE + base + '.gif');
+                            img.setAttribute('alt', media.getAttribute('alt') || '');
+                            media.parentNode.replaceChild(img, media);
+                        }
+                    }
+                });
+            });
+        }
+
+        // 页面加载后调用
+        updateAllMediaToCDN();
+
         // 平滑滚动到当前步骤
         document.querySelectorAll('.step-section').forEach(section => {
             section.addEventListener('click', () => {
@@ -471,57 +530,6 @@
             document.getElementById(timer.startBtn).disabled = false;
             document.getElementById(timer.pauseBtn).disabled = true;
             document.getElementById(timer.finishedId).style.display = 'none';
-        }
-
-        // GIF/视频切换逻辑（支持每步多个媒体）
-        let isVideoMode = false;
-        function toggleMode() {
-            isVideoMode = !isVideoMode;
-            const btn = document.getElementById('toggle-mode-btn');
-            btn.textContent = isVideoMode ? '切换为GIF版' : '切换为视频版';
-            // 查找所有媒体元素
-            const allStepSections = document.querySelectorAll('.step-section');
-            allStepSections.forEach(section => {
-                // 查找所有step-gif和step-video
-                section.querySelectorAll('.step-gif, .step-video').forEach(media => {
-                    let src = media.getAttribute('src');
-                    if (!src) return;
-                    if (isVideoMode) {
-                        // 只处理.gif结尾的IMG
-                        if (media.tagName === 'IMG' && /\.gif$/i.test(src)) {
-                            let base = src.replace(/\.gif$/i, '');
-                            const video = document.createElement('video');
-                            video.className = 'step-video';
-                            video.setAttribute('controls', '');
-                            video.setAttribute('src', base + '.mp4');
-                            video.setAttribute('alt', media.getAttribute('alt') || '');
-                            video.style.width = '100%';
-                            video.style.maxWidth = '100%';
-                            video.style.borderRadius = '0';
-                            video.style.background = '#000';
-                            video.style.display = 'block';
-                            video.style.margin = '0';
-                            media.parentNode.replaceChild(video, media);
-                        }
-                    } else {
-                        // 只处理step-video（即mp4视频）
-                        if (media.tagName === 'VIDEO') {
-                            let base = src.replace(/\.mp4$/i, '');
-                            const img = document.createElement('img');
-                            img.className = 'step-gif';
-                            img.setAttribute('src', base + '.gif');
-                            img.setAttribute('alt', media.getAttribute('alt') || '');
-                            img.style.width = '100%';
-                            img.style.maxWidth = '520px';
-                            img.style.borderRadius = '10px';
-                            img.style.background = '#000';
-                            img.style.display = 'block';
-                            img.style.marginBottom = '16px';
-                            media.parentNode.replaceChild(img, media);
-                        }
-                    }
-                });
-            });
         }
     </script>
 </body>
